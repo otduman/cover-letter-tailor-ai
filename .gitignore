@@ -1,0 +1,22 @@
+.env
+.env.*
+!.env.example
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.streamlit/secrets.toml
+
+# Local-only handoff doc (contains personal notes — keep off GitHub)
+HANDOFF.md
+
+# Node / extension
+node_modules/
+*.local
+.DS_Store
+.firefox-profile/
+web-ext-artifacts/
