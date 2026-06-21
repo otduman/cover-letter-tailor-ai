@@ -1,11 +1,11 @@
-import { useEffect, useState } from "react";
-import { getSettings, setSettings } from "../lib/storage";
-import { TONE_DEFINITIONS, type ToneKey } from "../lib/config";
+import { useEffect, useRef, useState } from "react";
+import { getSettings } from "../lib/storage";
 import { generateCoverLetter, type GenerateResult } from "../lib/generate";
 import { createDoc } from "../lib/google/docs";
 import { readJobFromActiveTab } from "../lib/linkedin";
 
-const TONES = Object.keys(TONE_DEFINITIONS) as ToneKey[];
+// Single fixed tone — no selector (personal tool).
+const TONE = "Formal / Corporate" as const;
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -15,7 +15,6 @@ export default function App() {
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
   const [jobDescription, setJobDescription] = useState("");
-  const [tone, setTone] = useState<ToneKey>("Formal / Corporate");
 
   const [reading, setReading] = useState(false);
   const [readMsg, setReadMsg] = useState("");
@@ -26,16 +25,8 @@ export default function App() {
   const [savingDoc, setSavingDoc] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      const s = await getSettings();
-      setApiOk(!!s.geminiApiKey);
-      setDocOk(!!s.masterDocText);
-      setTone(s.lastTone);
-      await readJob(false);
-      setReady(true);
-    })();
-  }, []);
+  // Keep a stable reference so event listeners always call the latest reader.
+  const readJobRef = useRef<(interactive: boolean) => Promise<void>>();
 
   async function readJob(interactive: boolean) {
     setReading(true);
@@ -54,6 +45,33 @@ export default function App() {
       setReading(false);
     }
   }
+  readJobRef.current = readJob;
+
+  useEffect(() => {
+    (async () => {
+      const s = await getSettings();
+      setApiOk(!!s.geminiApiKey);
+      setDocOk(!!s.masterDocText);
+      await readJob(false);
+      setReady(true);
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Auto-refresh: re-read when the active tab changes, or when the content
+  // script reports the LinkedIn job changed (clicking another job in the list).
+  useEffect(() => {
+    const refresh = () => readJobRef.current?.(false);
+    const onMessage = (msg: { type?: string }) => {
+      if (msg?.type === "JOB_CHANGED") refresh();
+    };
+    browser.tabs.onActivated.addListener(refresh);
+    browser.runtime.onMessage.addListener(onMessage);
+    return () => {
+      browser.tabs.onActivated.removeListener(refresh);
+      browser.runtime.onMessage.removeListener(onMessage);
+    };
+  }, []);
 
   const canGenerate =
     apiOk && docOk && jobTitle.trim() && company.trim() && jobDescription.trim() && !loading;
@@ -64,8 +82,7 @@ export default function App() {
     setDocUrl("");
     setLoading(true);
     try {
-      await setSettings({ lastTone: tone });
-      setResult(await generateCoverLetter({ jobTitle, company, jobDescription, tone }));
+      setResult(await generateCoverLetter({ jobTitle, company, jobDescription, tone: TONE }));
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -133,21 +150,9 @@ export default function App() {
         placeholder="e.g. KAYAK" />
 
       <label className="lbl">Job description</label>
-      <textarea className="input h-32 mb-3" value={jobDescription}
+      <textarea className="input h-32 mb-4" value={jobDescription}
         onChange={(e) => setJobDescription(e.target.value)}
-        placeholder="Click 'Read this job page', or paste it here." />
-
-      <label className="lbl">Tone</label>
-      <div className="flex flex-wrap gap-1.5 mb-4">
-        {TONES.map((t) => (
-          <button key={t} onClick={() => setTone(t)}
-            className={`text-xs rounded-full px-3 py-1.5 border transition ${
-              tone === t ? "bg-sage text-white border-sage" : "bg-white text-ink border-line"
-            }`}>
-            {t}
-          </button>
-        ))}
-      </div>
+        placeholder="Auto-read from the LinkedIn job, or paste it here." />
 
       <button className="btn-primary w-full" disabled={!canGenerate} onClick={onGenerate}>
         {loading ? "Generating…" : "Generate Cover Letter"}

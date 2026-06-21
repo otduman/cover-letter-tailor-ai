@@ -48,6 +48,14 @@ const manifest = {
     type: "module",
   },
 
+  // Keyboard shortcut to open/close the sidebar (counts as the user gesture
+  // Firefox requires; an add-on cannot open the sidebar on its own).
+  commands: {
+    _execute_sidebar_action: {
+      suggested_key: { default: "Ctrl+Shift+L" },
+    },
+  },
+
   permissions: ["storage", "identity"],
 
   host_permissions: [

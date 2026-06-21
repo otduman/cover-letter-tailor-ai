@@ -70,3 +70,19 @@ browser.runtime.onMessage.addListener((message) => {
   }
   return undefined;
 });
+
+// Tell the background this tab is a LinkedIn job tab (used for auto-close).
+browser.runtime.sendMessage({ type: "LINKEDIN_TAB" }).catch(() => {});
+
+// LinkedIn is a SPA — when you click a different job the URL changes but the
+// page doesn't reload. Notify the sidebar so it can re-read automatically.
+let lastUrl = location.href;
+setInterval(() => {
+  if (location.href !== lastUrl) {
+    lastUrl = location.href;
+    // Give the detail pane a moment to render the new job, then notify.
+    setTimeout(() => {
+      browser.runtime.sendMessage({ type: "JOB_CHANGED" }).catch(() => {});
+    }, 700);
+  }
+}, 1000);
