@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { getSettings } from "../lib/storage";
+import { getSettings, setSettings } from "../lib/storage";
+import type { Language } from "../lib/config";
 import { generateCoverLetter, type GenerateResult } from "../lib/generate";
 import { createDoc } from "../lib/google/docs";
 import { readJobFromActiveTab } from "../lib/linkedin";
 
 // Single fixed tone — no selector (personal tool).
 const TONE = "Formal / Corporate" as const;
+const LANGUAGES: Language[] = ["English", "German"];
 
 export default function App() {
   const [ready, setReady] = useState(false);
@@ -15,6 +17,7 @@ export default function App() {
   const [jobTitle, setJobTitle] = useState("");
   const [company, setCompany] = useState("");
   const [jobDescription, setJobDescription] = useState("");
+  const [language, setLanguage] = useState<Language>("English");
 
   const [reading, setReading] = useState(false);
   const [readMsg, setReadMsg] = useState("");
@@ -52,6 +55,7 @@ export default function App() {
       const s = await getSettings();
       setApiOk(!!s.geminiApiKey);
       setDocOk(!!s.masterDocText);
+      setLanguage(s.language);
       await readJob(false);
       setReady(true);
     })();
@@ -82,7 +86,9 @@ export default function App() {
     setDocUrl("");
     setLoading(true);
     try {
-      setResult(await generateCoverLetter({ jobTitle, company, jobDescription, tone: TONE }));
+      setResult(
+        await generateCoverLetter({ jobTitle, company, jobDescription, tone: TONE, language })
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -150,9 +156,22 @@ export default function App() {
         placeholder="e.g. KAYAK" />
 
       <label className="lbl">Job description</label>
-      <textarea className="input h-32 mb-4" value={jobDescription}
+      <textarea className="input h-32 mb-3" value={jobDescription}
         onChange={(e) => setJobDescription(e.target.value)}
         placeholder="Auto-read from the LinkedIn job, or paste it here." />
+
+      <label className="lbl">Letter language</label>
+      <div className="flex gap-1.5 mb-4">
+        {LANGUAGES.map((l) => (
+          <button key={l}
+            onClick={() => { setLanguage(l); setSettings({ language: l }); }}
+            className={`text-xs rounded-full px-3 py-1.5 border transition ${
+              language === l ? "bg-sage text-white border-sage" : "bg-white text-ink border-line"
+            }`}>
+            {l}
+          </button>
+        ))}
+      </div>
 
       <button className="btn-primary w-full" disabled={!canGenerate} onClick={onGenerate}>
         {loading ? "Generating…" : "Generate Cover Letter"}

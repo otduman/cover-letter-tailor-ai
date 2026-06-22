@@ -56,7 +56,7 @@ const manifest = {
     },
   },
 
-  permissions: ["storage", "identity"],
+  permissions: ["storage", "identity", "tabs"],
 
   host_permissions: [
     "https://docs.googleapis.com/*",

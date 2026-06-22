@@ -1,5 +1,5 @@
 // Typed wrapper around chrome.storage.local for the extension's settings.
-import type { ToneKey } from "./config";
+import type { ToneKey, Language } from "./config";
 
 export interface Settings {
   geminiApiKey: string;
@@ -15,6 +15,7 @@ export interface Settings {
   // Optional custom cover letter template; empty means use the default.
   coverLetterTemplate: string;
   lastTone: ToneKey;
+  language: Language;
 }
 
 const DEFAULTS: Settings = {
@@ -26,6 +27,7 @@ const DEFAULTS: Settings = {
   masterDocText: "",
   coverLetterTemplate: "",
   lastTone: "Formal / Corporate",
+  language: "English",
 };
 
 export async function getSettings(): Promise<Settings> {

@@ -1,44 +1,31 @@
 // Ported from the Python config.py — the project's core domain constants.
 
-export const MODEL_NAME = "gemini-2.5-flash";
+export const MODEL_NAME = "gemini-2.5-flash"; // skill-gap analysis
+// Letter writing. Flash is fast/reliable; 2.5-pro hit free-tier stalls.
+export const GENERATION_MODEL = "gemini-2.5-flash";
 
+// Focused list of the AI-filler words that actually show up in cover letters.
 export const BANNED_BUZZWORDS: string[] = [
-  "delve", "delving",
-  "synergy", "synergies", "synergistic",
-  "testament",
-  "tapestry",
+  "delve",
+  "synergy",
   "leverage", "leveraging", "leveraged",
   "robust",
-  "seamlessly", "seamless",
-  "spearheaded", "spearheading",
-  "orchestrated", "orchestrating",
-  "rockstar", "rock star",
-  "ninja",
-  "guru",
-  "thought leader", "thought leadership",
-  "game-changer", "game changer", "game-changing",
-  "cutting-edge", "cutting edge",
-  "best-in-class", "best in class",
-  "deep dive",
-  "move the needle",
-  "circle back",
-  "paradigm shift", "paradigm",
-  "holistic",
+  "seamless", "seamlessly",
+  "spearheaded",
+  "cutting-edge",
   "innovative", "innovation",
-  "utilize", "utilizing",
+  "utilize", "utilizing", "utilized",
   "impactful",
   "transformative",
   "dynamic",
-  "passionate",
-  "passion",
-  "driven professional",
+  "passionate", "passion",
   "results-driven",
   "detail-oriented",
-  "fast-paced environment",
-  // Extra banned terms from the writing guide:
   "proficient",
   "I am writing to express",
 ];
+
+export type Language = "English" | "German";
 
 export type ToneKey = "Formal / Corporate" | "Casual / Startup" | "Graduate / Trainee";
 
@@ -61,6 +48,12 @@ export const TONE_DEFINITIONS: Record<ToneKey, string> = {
 // Sender placeholders ({YOUR_*}) are filled from the master document; set a
 // custom template in Settings to override the layout.
 export const DEFAULT_COVER_LETTER_TEMPLATE =
-  "{YOUR_NAME}\n{YOUR_ADDRESS}\n{YOUR_EMAIL}\n{YOUR_PHONE}\n\n{COMPANY_NAME}\n" +
+  "{YOUR_NAME}\n{YOUR_STREET}\n{YOUR_POSTAL_CITY}\n{YOUR_EMAIL}\n{YOUR_PHONE}\n\n{COMPANY_NAME}\n" +
   "{YOUR_CITY}, {DATE}\n\n{SUBJECT_LINE}\n\nDear {HIRING_MANAGER},\n\n{PARAGRAPH_1}\n\n" +
   "{PARAGRAPH_2}\n\n{PARAGRAPH_3}\n\n{PARAGRAPH_4}\n\nSincerely,\n{YOUR_NAME}";
+
+// German variant — standard Anschreiben conventions.
+export const DEFAULT_COVER_LETTER_TEMPLATE_DE =
+  "{YOUR_NAME}\n{YOUR_STREET}\n{YOUR_POSTAL_CITY}\n{YOUR_EMAIL}\n{YOUR_PHONE}\n\n{COMPANY_NAME}\n" +
+  "{YOUR_CITY}, {DATE}\n\n{SUBJECT_LINE}\n\nSehr geehrte Damen und Herren,\n\n{PARAGRAPH_1}\n\n" +
+  "{PARAGRAPH_2}\n\n{PARAGRAPH_3}\n\n{PARAGRAPH_4}\n\nMit freundlichen Grüßen\n{YOUR_NAME}";
