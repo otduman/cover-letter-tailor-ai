@@ -32,12 +32,13 @@ export async function generateLetter(
 }
 
 /**
- * Length-correction pass: expand or trim an existing letter so it lands
- * just under one full A4 page. Everything else must stay intact.
+ * Length-correction pass. Receives ONLY the body paragraphs — the header,
+ * salutation, and closing are frozen in code and reassembled afterwards, so
+ * the model physically cannot alter the address block or signature.
  */
 export async function reviseLetterLength(
   systemPrompt: string,
-  letter: string,
+  bodyParagraphs: string,
   fillPercent: number,
   deltaWords: number,
   apiKey: string,
@@ -45,18 +46,17 @@ export async function reviseLetterLength(
 ): Promise<string> {
   const direction =
     deltaWords >= 0
-      ? `EXPAND the body by about ${deltaWords} words: deepen paragraphs 2 and 3 with reasoning and connection to the role — never padding, repetition, or new CV facts`
-      : `TRIM the body by about ${-deltaWords} words: cut the least essential detail`;
+      ? `EXPAND them by about ${deltaWords} words: deepen paragraphs 2 and 3 with reasoning and connection to the role — never padding, repetition, or new CV facts`
+      : `TRIM them by about ${-deltaWords} words: cut the least essential detail`;
 
   const response = await makeLlm(apiKey, model).invoke([
     ["system", systemPrompt],
     [
       "human",
-      `Here is the cover letter you wrote:\n\n${letter}\n\n` +
-        `It currently fills about ${Math.round(fillPercent * 100)}% of one A4 page ` +
-        `(Calibri 11pt). ${direction}. Keep the header block, subject line, salutation, ` +
-        `closing, every fact, and every style rule exactly as they are. ` +
-        `Output ONLY the revised letter.`,
+      `Here are the body paragraphs of the cover letter you wrote:\n\n${bodyParagraphs}\n\n` +
+        `The full letter currently fills about ${Math.round(fillPercent * 100)}% of one A4 page ` +
+        `(Calibri 11pt). ${direction}. Keep every fact and every style rule. ` +
+        `Output ONLY the revised body paragraphs — no header, no salutation, no closing, no commentary.`,
     ],
   ]);
   return asText(response.content);

@@ -63,27 +63,33 @@ export async function generateCoverLetter(input: GenerateInput): Promise<Generat
   let fill = measurePageFill(letter);
 
   // Page-fit loop: up to two corrective passes to land inside the band.
-  for (let i = 0; i < 2 && (fill < MIN_FILL || fill > MAX_FILL); i++) {
+  // Only the body paragraphs are ever sent for revision — header, salutation,
+  // and closing are frozen here and reassembled verbatim. If the letter can't
+  // be split (unexpected structure), we skip correction rather than risk it.
+  let parts = splitLetter(letter);
+  for (let i = 0; i < 2 && parts && (fill < MIN_FILL || fill > MAX_FILL); i++) {
     const words = letter.split(/\s+/).length;
     const wordsPerFullPage = words / fill;
     const deltaWords = Math.round((TARGET_FILL - fill) * wordsPerFullPage);
     if (Math.abs(deltaWords) < 15) break; // not worth a round-trip
 
-    const revised = cleanOutput(
+    const revisedBody = cleanOutput(
       await reviseLetterLength(
         systemPrompt,
-        letter,
+        parts.body,
         fill,
         deltaWords,
         settings.geminiApiKey,
         settings.generationModel
       )
     );
-    const revisedFill = measurePageFill(revised);
+    const candidate = `${parts.head}\n\n${revisedBody}\n\n${parts.tail}`;
+    const candidateFill = measurePageFill(candidate);
     // Keep the revision only if it actually lands closer to the target.
-    if (Math.abs(revisedFill - TARGET_FILL) < Math.abs(fill - TARGET_FILL)) {
-      letter = revised;
-      fill = revisedFill;
+    if (Math.abs(candidateFill - TARGET_FILL) < Math.abs(fill - TARGET_FILL)) {
+      letter = candidate;
+      fill = candidateFill;
+      parts = { ...parts, body: revisedBody };
     } else {
       break;
     }
@@ -124,6 +130,28 @@ function preserveCase(match: string, replacement: string): string {
   return match[0] === match[0].toUpperCase()
     ? replacement[0].toUpperCase() + replacement.slice(1)
     : replacement;
+}
+
+interface LetterParts {
+  head: string; // everything through the salutation line (address block, date, subject)
+  body: string; // the four paragraphs — the only part revision may touch
+  tail: string; // closing ("Sincerely," / "Mit freundlichen Grüßen") through signature
+}
+
+/** Split the letter around its body so header/closing can be frozen. */
+function splitLetter(letter: string): LetterParts | null {
+  const sal = letter.match(/^(Dear .*|Sehr geehrte.*)$/m);
+  if (!sal || sal.index === undefined) return null;
+  const headEnd = sal.index + sal[0].length;
+
+  const close = letter.match(/^(Sincerely,?|Mit freundlichen Grüßen,?)\s*$/m);
+  if (!close || close.index === undefined || close.index <= headEnd) return null;
+
+  return {
+    head: letter.slice(0, headEnd),
+    body: letter.slice(headEnd, close.index).trim(),
+    tail: letter.slice(close.index).trim(),
+  };
 }
 
 /** Strip markdown fences, unfilled placeholders, and AI-filler words. */
