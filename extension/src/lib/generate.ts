@@ -2,8 +2,9 @@
 // (Mirrors the generation block from the old Streamlit app.py.)
 import { getSettings } from "./storage";
 import { analyzeGaps } from "./chains/analyzeGaps";
-import { generateLetter } from "./chains/generateLetter";
+import { generateLetter, reviseLetterLength } from "./chains/generateLetter";
 import { detectBuzzwords } from "./buzzwords";
+import { measurePageFill } from "./pageFit";
 import { buildSystemPrompt, buildUserPrompt } from "./promptBuilder";
 import type { ToneKey, Language } from "./config";
 
@@ -19,7 +20,14 @@ export interface GenerateResult {
   letter: string;
   gaps: string[];
   buzzwordHits: string[];
+  /** Fraction of one A4 page the letter fills (1.0 = exactly full). */
+  pageFill: number;
 }
+
+// Acceptable page-fill band: "on the verge" of one page without spilling over.
+const MIN_FILL = 0.88;
+const MAX_FILL = 1.0;
+const TARGET_FILL = 0.95;
 
 export async function generateCoverLetter(input: GenerateInput): Promise<GenerateResult> {
   const settings = await getSettings();
@@ -51,10 +59,39 @@ export async function generateCoverLetter(input: GenerateInput): Promise<Generat
     settings.geminiApiKey,
     settings.generationModel
   );
-  const letter = cleanOutput(raw);
+  let letter = cleanOutput(raw);
+  let fill = measurePageFill(letter);
+
+  // Page-fit loop: up to two corrective passes to land inside the band.
+  for (let i = 0; i < 2 && (fill < MIN_FILL || fill > MAX_FILL); i++) {
+    const words = letter.split(/\s+/).length;
+    const wordsPerFullPage = words / fill;
+    const deltaWords = Math.round((TARGET_FILL - fill) * wordsPerFullPage);
+    if (Math.abs(deltaWords) < 15) break; // not worth a round-trip
+
+    const revised = cleanOutput(
+      await reviseLetterLength(
+        systemPrompt,
+        letter,
+        fill,
+        deltaWords,
+        settings.geminiApiKey,
+        settings.generationModel
+      )
+    );
+    const revisedFill = measurePageFill(revised);
+    // Keep the revision only if it actually lands closer to the target.
+    if (Math.abs(revisedFill - TARGET_FILL) < Math.abs(fill - TARGET_FILL)) {
+      letter = revised;
+      fill = revisedFill;
+    } else {
+      break;
+    }
+  }
+
   const buzzwordHits = detectBuzzwords(letter); // check the FINAL letter, not raw
 
-  return { letter, gaps, buzzwordHits };
+  return { letter, gaps, buzzwordHits, pageFill: fill };
 }
 
 // Deterministic backstop: the model keeps echoing these AI-filler words from the

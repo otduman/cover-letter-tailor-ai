@@ -206,11 +206,17 @@ export default function App() {
             </div>
           )}
 
-          <div className="rounded-xl border border-line bg-panel p-4 mb-3">
+          <div className="rounded-xl border border-line bg-panel p-4 mb-1">
             <pre className="whitespace-pre-wrap break-words font-sans text-[13px] leading-relaxed text-ink m-0">
               {result.letter}
             </pre>
           </div>
+
+          <p className="text-[12px] mb-3 text-right"
+            style={{ color: result.pageFill >= 0.88 && result.pageFill <= 1.0 ? "#2E6B3A" : "#7A5A00" }}>
+            Page fill: {Math.round(result.pageFill * 100)}%
+            {result.pageFill >= 0.88 && result.pageFill <= 1.0 ? " ✓" : " (outside 88–100%)"}
+          </p>
 
           <div className="flex gap-2">
             <button className="btn-secondary flex-1" onClick={onCopy}>

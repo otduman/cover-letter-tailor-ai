@@ -85,12 +85,32 @@ export async function createDoc(title: string, body: string): Promise<string> {
 
 function buildStylingRequests(body: string): object[] {
   const requests: object[] = [
-    // Calibri for the whole document
+    // A4 page + 2.54cm margins — must match the geometry pageFit.ts measures
+    // against, so the "page fill" number holds in the real document.
+    {
+      updateDocumentStyle: {
+        documentStyle: {
+          pageSize: {
+            width: { magnitude: 595.28, unit: "PT" },
+            height: { magnitude: 841.89, unit: "PT" },
+          },
+          marginTop: { magnitude: 72, unit: "PT" },
+          marginBottom: { magnitude: 72, unit: "PT" },
+          marginLeft: { magnitude: 72, unit: "PT" },
+          marginRight: { magnitude: 72, unit: "PT" },
+        },
+        fields: "pageSize,marginTop,marginBottom,marginLeft,marginRight",
+      },
+    },
+    // Calibri 11pt for the whole document
     {
       updateTextStyle: {
         range: { startIndex: 1, endIndex: body.length + 1 },
-        textStyle: { weightedFontFamily: { fontFamily: "Calibri" } },
-        fields: "weightedFontFamily",
+        textStyle: {
+          weightedFontFamily: { fontFamily: "Calibri" },
+          fontSize: { magnitude: 11, unit: "PT" },
+        },
+        fields: "weightedFontFamily,fontSize",
       },
     },
   ];
