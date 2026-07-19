@@ -1,6 +1,6 @@
 {
   "name": "job-tailor-extension",
-  "version": "0.1.2",
+  "version": "0.1.4",
   "description": "AI cover letters from your real experience — Firefox extension",
   "type": "module",
   "scripts": {

@@ -79,15 +79,33 @@ export async function connectGoogle(): Promise<void> {
 export async function getAccessToken(): Promise<string> {
   const { googleClientId, googleClientSecret, googleRefreshToken } =
     await getSettings();
-  if (!googleRefreshToken) throw new Error("Not connected to Google.");
+  if (!googleRefreshToken) {
+    throw new Error("Not connected to Google — open Settings and press Connect Google.");
+  }
 
-  const tokens = await postToken({
-    client_id: googleClientId,
-    client_secret: googleClientSecret,
-    refresh_token: googleRefreshToken,
-    grant_type: "refresh_token",
-  });
-  return tokens.access_token;
+  try {
+    const tokens = await postToken({
+      client_id: googleClientId,
+      client_secret: googleClientSecret,
+      refresh_token: googleRefreshToken,
+      grant_type: "refresh_token",
+    });
+    return tokens.access_token;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    // Testing-mode OAuth apps get refresh tokens that Google expires after
+    // ~7 days ("invalid_grant"). Clear the dead token and tell the user how
+    // to fix it permanently.
+    if (/invalid_grant|expired|revoked/i.test(msg)) {
+      await setSettings({ googleRefreshToken: "" });
+      throw new Error(
+        "Google connection expired — open Settings and press Connect Google again. " +
+          "To stop this happening weekly, set your Google Cloud OAuth consent screen " +
+          "from 'Testing' to 'In production' (Audience → Publish app)."
+      );
+    }
+    throw e;
+  }
 }
 
 export async function disconnectGoogle(): Promise<void> {

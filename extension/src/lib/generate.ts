@@ -45,7 +45,12 @@ export async function generateCoverLetter(input: GenerateInput): Promise<Generat
     language: input.language,
   });
 
-  const raw = await generateLetter(systemPrompt, userPrompt, settings.geminiApiKey);
+  const raw = await generateLetter(
+    systemPrompt,
+    userPrompt,
+    settings.geminiApiKey,
+    settings.generationModel
+  );
   const letter = cleanOutput(raw);
   const buzzwordHits = detectBuzzwords(letter); // check the FINAL letter, not raw
 

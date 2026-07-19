@@ -24,27 +24,67 @@ export async function readDoc(docId: string): Promise<string> {
   return flattenDoc(doc);
 }
 
+/** Pull a readable message out of a Google API error response. */
+async function apiError(res: Response): Promise<string> {
+  try {
+    const data = await res.json();
+    return data?.error?.message ?? `HTTP ${res.status}`;
+  } catch {
+    return `HTTP ${res.status}`;
+  }
+}
+
 /** Create a new Google Doc with the given title and body text. Returns its URL. */
 export async function createDoc(title: string, body: string): Promise<string> {
   const token = await getAccessToken();
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
 
   // 1) create an empty document with the title
   const createRes = await fetch(DOCS_API, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify({ title }),
   });
   if (!createRes.ok) {
-    throw new Error(`Could not create the Google Doc (${createRes.status}).`);
+    throw new Error(`Could not create the Google Doc: ${await apiError(createRes)}`);
   }
   const { documentId } = await createRes.json();
+  const url = `https://docs.google.com/document/d/${documentId}/edit`;
 
-  // 2) insert the text, then style it. Document index = bodyOffset + 1.
+  // 2) insert the text — this step must succeed.
+  const insertRes = await fetch(`${DOCS_API}/${documentId}:batchUpdate`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      requests: [{ insertText: { location: { index: 1 }, text: body } }],
+    }),
+  });
+  if (!insertRes.ok) {
+    throw new Error(`Could not write the letter into the Doc: ${await apiError(insertRes)}`);
+  }
+
+  // 3) styling is best-effort — a styling hiccup must never lose the letter.
+  try {
+    const styling = buildStylingRequests(body);
+    if (styling.length) {
+      await fetch(`${DOCS_API}/${documentId}:batchUpdate`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ requests: styling }),
+      });
+    }
+  } catch {
+    // Doc exists with the full text; user just gets default styling.
+  }
+
+  return url;
+}
+
+function buildStylingRequests(body: string): object[] {
   const requests: object[] = [
-    { insertText: { location: { index: 1 }, text: body } },
     // Calibri for the whole document
     {
       updateTextStyle: {
@@ -97,19 +137,7 @@ export async function createDoc(title: string, body: string): Promise<string> {
     }
   }
 
-  const updateRes = await fetch(`${DOCS_API}/${documentId}:batchUpdate`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ requests }),
-  });
-  if (!updateRes.ok) {
-    throw new Error(`Could not write the cover letter into the Doc (${updateRes.status}).`);
-  }
-
-  return `https://docs.google.com/document/d/${documentId}/edit`;
+  return requests;
 }
 
 interface DocElement {

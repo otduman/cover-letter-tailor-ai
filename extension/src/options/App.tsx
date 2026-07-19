@@ -99,6 +99,18 @@ export default function App() {
             placeholder="AIza..."
           />
         </Field>
+        <Field
+          label="Letter model"
+          hint="Model that writes the letter. gemini-2.5-pro writes best (slower, ~10–40s); gemini-2.5-flash is fastest. Leave blank for the default (gemini-2.5-pro)."
+        >
+          <input
+            type="text"
+            className="input"
+            value={form.generationModel}
+            onChange={(e) => update({ generationModel: e.target.value })}
+            placeholder="gemini-2.5-pro"
+          />
+        </Field>
       </Section>
 
       <Section title="2 · Connect Google">

@@ -1,8 +1,10 @@
 // Ported from the Python config.py — the project's core domain constants.
 
-export const MODEL_NAME = "gemini-2.5-flash"; // skill-gap analysis
-// Letter writing. Flash is fast/reliable; 2.5-pro hit free-tier stalls.
-export const GENERATION_MODEL = "gemini-2.5-flash";
+export const MODEL_NAME = "gemini-2.5-flash"; // skill-gap analysis (cheap step)
+// Letter writing — Pro writes noticeably better prose. (The earlier Pro "stall"
+// was our old 1100-token output cap: Pro's hidden thinking tokens consumed it.)
+// Overridable per-user in Settings.
+export const GENERATION_MODEL = "gemini-2.5-pro";
 
 // Focused list of the AI-filler words that actually show up in cover letters.
 export const BANNED_BUZZWORDS: string[] = [
@@ -52,8 +54,9 @@ export const DEFAULT_COVER_LETTER_TEMPLATE =
   "{YOUR_CITY}, {DATE}\n\n{SUBJECT_LINE}\n\nDear {HIRING_MANAGER},\n\n{PARAGRAPH_1}\n\n" +
   "{PARAGRAPH_2}\n\n{PARAGRAPH_3}\n\n{PARAGRAPH_4}\n\nSincerely,\n{YOUR_NAME}";
 
-// German variant — standard Anschreiben conventions.
+// German variant — standard Anschreiben conventions. {SALUTATION} lets the
+// model address a named team/contact when the ad provides one.
 export const DEFAULT_COVER_LETTER_TEMPLATE_DE =
   "{YOUR_NAME}\n{YOUR_STREET}\n{YOUR_POSTAL_CITY}\n{YOUR_EMAIL}\n{YOUR_PHONE}\n\n{COMPANY_NAME}\n" +
-  "{YOUR_CITY}, {DATE}\n\n{SUBJECT_LINE}\n\nSehr geehrte Damen und Herren,\n\n{PARAGRAPH_1}\n\n" +
+  "{YOUR_CITY}, {DATE}\n\n{SUBJECT_LINE}\n\n{SALUTATION}\n\n{PARAGRAPH_1}\n\n" +
   "{PARAGRAPH_2}\n\n{PARAGRAPH_3}\n\n{PARAGRAPH_4}\n\nMit freundlichen Grüßen\n{YOUR_NAME}";

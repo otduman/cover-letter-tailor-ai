@@ -3,6 +3,8 @@ import type { ToneKey, Language } from "./config";
 
 export interface Settings {
   geminiApiKey: string;
+  // Gemini model used for letter writing; empty = built-in default.
+  generationModel: string;
   // Google OAuth ("Web application" client) credentials.
   googleClientId: string;
   googleClientSecret: string;
@@ -20,6 +22,7 @@ export interface Settings {
 
 const DEFAULTS: Settings = {
   geminiApiKey: "",
+  generationModel: "",
   googleClientId: "",
   googleClientSecret: "",
   googleRefreshToken: "",

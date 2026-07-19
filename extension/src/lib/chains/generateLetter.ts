@@ -5,19 +5,20 @@ import { GENERATION_MODEL } from "../config";
 export async function generateLetter(
   systemPrompt: string,
   userPrompt: string,
-  apiKey: string
+  apiKey: string,
+  model?: string
 ): Promise<string> {
-  const model = new ChatGoogleGenerativeAI({
+  const llm = new ChatGoogleGenerativeAI({
     apiKey,
-    model: GENERATION_MODEL,
+    model: model?.trim() || GENERATION_MODEL,
     temperature: 0.7,
-    // Generous ceiling: Gemini 2.5 Flash spends hidden "thinking" tokens against
-    // this budget, so a low cap truncates the letter (German runs longer). One-page
-    // length is enforced by the prompt, not by this limit.
-    maxOutputTokens: 8192,
+    // Generous ceiling: Gemini 2.5 models spend hidden "thinking" tokens against
+    // this budget — Pro especially. A low cap silently truncates or stalls the
+    // letter. One-page length is enforced by the prompt, not by this limit.
+    maxOutputTokens: 16384,
   });
 
-  const response = await model.invoke([
+  const response = await llm.invoke([
     ["system", systemPrompt],
     ["human", userPrompt],
   ]);
